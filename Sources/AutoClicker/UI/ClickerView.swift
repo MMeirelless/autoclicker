@@ -259,6 +259,14 @@ struct ClickerView: View {
             if let message = clicker.lastMessage {
                 Text(message).font(.caption).foregroundStyle(.red)
             }
+            if let warning = state.hotkeyWarning {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
+                    Text(warning).font(.caption).foregroundStyle(.orange)
+                    Spacer()
+                    Button("Retry") { state.retryHotkeys() }.controlSize(.small)
+                }
+            }
         }
         .padding(12)
     }

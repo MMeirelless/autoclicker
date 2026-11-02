@@ -161,9 +161,18 @@ struct HotkeyRecorderView: View {
             return
         }
         let others = taken.filter { $0 != combo }
-        if HotkeyManager.conflictsWithSystem(candidate) || others.contains(candidate) {
-            let reason = others.contains(candidate) ? "another shortcut in AutoClicker" : "macOS"
-            if let suggestion = HotkeyManager.suggestFreeCombo(avoiding: others) {
+        let reason: String?
+        if others.contains(candidate) {
+            reason = "another shortcut in AutoClicker"
+        } else if HotkeyManager.conflictsWithSystem(candidate) {
+            reason = "macOS"
+        } else if !HotkeyManager.shared.canRegister(candidate) {
+            reason = "another app (another autoclicker or a second copy of AutoClicker?)"
+        } else {
+            reason = nil
+        }
+        if let reason {
+            if let suggestion = HotkeyManager.suggestFreeCombo(avoiding: others, probe: true) {
                 combo = suggestion
                 message = "\(candidate.displayString) is used by \(reason). Assigned the free combination \(suggestion.displayString) instead — tip: Control + Number combos are usually free."
             } else {

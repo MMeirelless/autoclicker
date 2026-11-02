@@ -30,21 +30,53 @@ final class HotkeyManager {
                             Unmanaged.passUnretained(self).toOpaque(), &eventHandler)
     }
 
-    /// Registers a global hotkey. Returns an identifier for `unregister`, or nil on failure.
+    /// Registers a global hotkey. Returns an identifier for `unregister`, or nil on failure
+    /// (`lastError` then explains why, typically because another app already owns the combination).
     @discardableResult
     func register(_ combo: KeyCombo, handler: @escaping () -> Void) -> UInt32? {
-        guard combo.isValidGlobalHotkey else { return nil }
+        guard combo.isValidGlobalHotkey else {
+            lastError = "\(combo.displayString) needs a modifier key or a function key."
+            return nil
+        }
         let id = nextID
         nextID += 1
         var ref: EventHotKeyRef?
         let hotkeyID = EventHotKeyID(signature: Self.signature, id: id)
         let status = RegisterEventHotKey(combo.keyCode, combo.carbonModifiers, hotkeyID,
                                          GetApplicationEventTarget(), 0, &ref)
-        guard status == noErr, let ref else { return nil }
+        guard status == noErr, let ref else {
+            lastError = Self.describe(status, combo: combo)
+            return nil
+        }
         refs[id] = ref
         handlers[id] = handler
         combos[id] = combo
+        lastError = nil
         return id
+    }
+
+    /// Why the last `register` call failed.
+    private(set) var lastError: String?
+
+    /// Whether macOS would let this app register `combo` right now (true if we already hold it).
+    /// Another app holding the same combination (another autoclicker, a second copy of this app…)
+    /// makes `RegisterEventHotKey` fail, which the recorder reports instead of silently assigning it.
+    func canRegister(_ combo: KeyCombo) -> Bool {
+        guard combo.isValidGlobalHotkey else { return false }
+        if isRegistered(combo) { return true }
+        var ref: EventHotKeyRef?
+        let probe = EventHotKeyID(signature: Self.signature, id: 0)
+        let status = RegisterEventHotKey(combo.keyCode, combo.carbonModifiers, probe,
+                                         GetApplicationEventTarget(), 0, &ref)
+        if let ref { UnregisterEventHotKey(ref) }
+        return status == noErr
+    }
+
+    private static func describe(_ status: OSStatus, combo: KeyCombo) -> String {
+        if status == OSStatus(eventHotKeyExistsErr) {
+            return "\(combo.displayString) is already used by another app."
+        }
+        return "\(combo.displayString) could not be registered (error \(status))."
     }
 
     func unregister(_ id: UInt32) {
@@ -98,7 +130,10 @@ final class HotkeyManager {
     }
 
     /// Suggests a free "Control + Number"-style shortcut not used by the system or by `taken`.
-    static func suggestFreeCombo(avoiding taken: [KeyCombo]) -> KeyCombo? {
-        KeyCombo.suggestionPool.first { !taken.contains($0) && !conflictsWithSystem($0) }
+    /// With `probe`, combinations currently held by other apps are skipped as well.
+    static func suggestFreeCombo(avoiding taken: [KeyCombo], probe: Bool = false) -> KeyCombo? {
+        KeyCombo.suggestionPool.first {
+            !taken.contains($0) && !conflictsWithSystem($0) && (!probe || shared.canRegister($0))
+        }
     }
 }

@@ -21,7 +21,11 @@ struct SettingsView: View {
                 HotkeyRecorderView(title: "Toggle Menu Bar icon", combo: $state.settings.toggleMenuBarIconHotkey,
                                    taken: state.assignedHotkeys(excluding: state.settings.toggleMenuBarIconHotkey))
                 if let warning = state.hotkeyWarning {
-                    Label(warning, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
+                    HStack(alignment: .top) {
+                        Label(warning, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
+                        Spacer()
+                        Button("Retry") { state.retryHotkeys() }.controlSize(.small)
+                    }
                 }
             } header: {
                 Text("Shortcuts")

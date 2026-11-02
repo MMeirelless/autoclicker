@@ -167,7 +167,8 @@ final class AppState: ObservableObject {
             if let id = HotkeyManager.shared.register(combo, handler: action) {
                 settingsHotkeyIDs.append(id)
             } else {
-                failures.append("\(label) (\(combo.displayString))")
+                let why = HotkeyManager.shared.lastError ?? "\(combo.displayString) could not be registered."
+                failures.append("\(label): \(why)")
             }
         }
 
@@ -186,7 +187,14 @@ final class AppState: ObservableObject {
             let v = self.settings.iconVisibility
             self.settings.iconVisibility = .from(dock: v.showsDock, menuBar: !v.showsMenuBar)
         }
-        hotkeyWarning = failures.isEmpty ? nil : "Could not register: " + failures.joined(separator: ", ")
+        hotkeyWarning = failures.isEmpty ? nil
+            : failures.joined(separator: " ") + " Pick a different combination in Settings, or quit the app that holds it."
+    }
+
+    /// Re-registers every shortcut, e.g. after another app released a combination it held.
+    func retryHotkeys() {
+        registerSettingsHotkeys()
+        registerMacroHotkeys()
     }
 
     private func registerMacroHotkeys() {

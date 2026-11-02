@@ -127,3 +127,20 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(try Store.decoder.decode(AppSettings.self, from: data), settings)
     }
 }
+
+final class HotkeyProbeTests: XCTestCase {
+    func testProbeDoesNotKeepTheCombinationAndHeldCombosStayRegistrable() {
+        let combo = KeyCombo(keyCode: UInt32(kVK_F18), modifiers: [.control, .option, .shift, .command])
+        let manager = HotkeyManager.shared
+        XCTAssertTrue(manager.canRegister(combo))
+        XCTAssertFalse(manager.isRegistered(combo), "probing must release the combination")
+        guard let id = manager.register(combo, handler: {}) else {
+            return XCTFail("registration failed: \(manager.lastError ?? "unknown")")
+        }
+        XCTAssertTrue(manager.isRegistered(combo))
+        XCTAssertTrue(manager.canRegister(combo), "a combination we already hold is still ours")
+        manager.unregister(id)
+        XCTAssertFalse(manager.isRegistered(combo))
+        XCTAssertFalse(manager.canRegister(KeyCombo(keyCode: UInt32(kVK_ANSI_A), modifiers: [])))
+    }
+}
