@@ -36,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &cancellables)
 
         state.start()
+        SingleInstance.observeHandOff { [weak self] in self?.showUI() }
 
         if !state.settings.iconVisibility.showsMenuBar {
             showMainWindow()
