@@ -18,6 +18,12 @@ enum ScreenCoordinates {
     }
 }
 
+/// Borderless windows refuse key status by default; the selection overlay needs it for Esc.
+final class KeyableWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
 // MARK: - Interactive selection overlay (area / point)
 
 /// Full-screen, per-display overlay used to drag out a click area or pick a single point.
@@ -56,7 +62,7 @@ final class SelectionOverlay {
 
     private func show() {
         for screen in NSScreen.screens {
-            let window = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false, screen: screen)
+            let window = KeyableWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
             window.level = .screenSaver
             window.isOpaque = false
             window.backgroundColor = .clear

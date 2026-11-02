@@ -13,6 +13,11 @@ let package = Package(
                 .linkedFramework("Carbon"),
                 .linkedFramework("ServiceManagement"),
             ]
-        )
+        ),
+        .testTarget(
+            name: "AutoClickerTests",
+            dependencies: ["AutoClicker"],
+            path: "Tests/AutoClickerTests"
+        ),
     ]
 )

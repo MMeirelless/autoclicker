@@ -250,10 +250,9 @@ final class MacroRecorder: ObservableObject {
 final class RecorderPanel: NSPanel {
     init(recorder: MacroRecorder) {
         super.init(contentRect: NSRect(x: 0, y: 0, width: 330, height: 150),
-                   styleMask: [.titled, .nonactivatingPanel, .utilityWindow, .hudWindow, .fullSizeContentView],
+                   styleMask: [.titled, .nonactivatingPanel, .utilityWindow, .hudWindow],
                    backing: .buffered, defer: false)
-        title = "Recording"
-        titlebarAppearsTransparent = true
+        title = "Recording macro"
         level = .floating
         isFloatingPanel = true
         hidesOnDeactivate = false

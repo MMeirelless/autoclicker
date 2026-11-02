@@ -39,6 +39,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if !state.settings.iconVisibility.showsMenuBar {
             showMainWindow()
+        } else if ProcessInfo.processInfo.environment["AUTOCLICKER_OPEN_WINDOW"] != nil {
+            showMainWindow()
         }
     }
 
@@ -111,8 +113,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Presenting the UI
 
+    /// True when the menu-bar button is actually on a screen. macOS can keep an item "visible" yet
+    /// park it off-screen when the menu bar is full; anchoring a popover to it would be useless.
+    var statusItemIsOnScreen: Bool {
+        guard statusItem.isVisible, let frame = statusItem.button?.window?.frame else { return false }
+        return NSScreen.screens.contains { $0.frame.intersects(frame) }
+    }
+
     func showUI() {
-        if statusItem.isVisible { showPopover() } else { showMainWindow() }
+        if statusItemIsOnScreen { showPopover() } else { showMainWindow() }
     }
 
     func togglePopover() {
@@ -120,7 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func showPopover() {
-        guard statusItem.isVisible, let button = statusItem.button else { showMainWindow(); return }
+        guard statusItemIsOnScreen, let button = statusItem.button else { showMainWindow(); return }
         NSApp.activate()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()
