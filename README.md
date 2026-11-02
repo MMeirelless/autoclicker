@@ -53,24 +53,37 @@ per-unit random delays down to microseconds).
 Requirements: macOS 14+, Xcode 15+ (Swift 5.10 toolchain or newer).
 
 ```sh
-make app        # builds build/AutoClicker.app (release, ad-hoc signed)
-make run        # builds and launches it
-make install    # copies the bundle to /Applications
-swift test      # unit tests (scheduler, sharing, models)
+make cert       # once: local signing certificate, so rebuilds keep the Accessibility grant
+make install    # builds build/AutoClicker.app, quits any running copy, installs to /Applications, launches
+make run        # builds and launches build/AutoClicker.app instead (development)
+swift test      # unit tests (scheduler, sharing, models, hotkeys)
 ```
 
-`Package.swift` can also be opened directly in Xcode. To sign with a real identity:
-`CODESIGN_IDENTITY="Developer ID Application: …" make app`.
+`Package.swift` can also be opened directly in Xcode. Only one copy of the app runs at a time: launching
+a second one (say from `build/` while `/Applications` is running) just brings the running copy forward.
+
+### Signing
+
+macOS ties the Accessibility grant to the app's **code signature**. An ad-hoc signature changes with every
+rebuild, so the app would stay listed as allowed while the permission silently stops working. `make cert`
+creates a self-signed certificate in a private keychain
+(`~/Library/Application Support/AutoClicker/signing/`, nothing is added to the login keychain or to the
+trust settings) and `make app` / `make install` sign with it automatically; the signature then stays the
+same across builds. A real identity can be used instead: `CODESIGN_IDENTITY="Developer ID Application: …"
+make install`, and any Apple Development identity in the default keychains is picked up on its own.
 
 ## Permissions
 
 | Permission | Needed for | Where |
 |---|---|---|
-| **Accessibility** | posting clicks, moves, scrolls and keys | System Settings → Privacy & Security → Accessibility |
+| **Accessibility** | posting clicks, moves, scrolls and keys | System Settings → Privacy & Security → Accessibility (called *Device Control and Data Access* on newer macOS) |
 | **Input Monitoring** | recording keyboard presses in macros | System Settings → Privacy & Security → Input Monitoring |
 
-If the clicker is listed in Accessibility but does nothing, remove it from the list and add it again.
-Every rebuild of an ad-hoc signed bundle changes its signature, so macOS may ask again.
+**Listed and enabled, but the app still says the permission is missing?** The grant belongs to an older
+build. Click **Reset & re-request…** in the app's banner (or in Settings → Permissions): it runs
+`tccutil reset Accessibility com.mmeirelless.autoclicker`, shows the system prompt again, and the app
+is registered afresh. Removing the app from the list with “−” and adding it again does the same. Use
+`make cert` so this only happens once.
 
 ## Troubleshooting
 
@@ -80,8 +93,10 @@ Every rebuild of an ad-hoc signed bundle changes its signature, so macOS may ask
   floor per click, but macOS still has to process every event).
 - **The menu-bar icon is missing** — macOS hides menu-bar items that don't fit. Free some space in the menu
   bar, or just relaunch the app: the UI opens in a window whenever the icon is off-screen.
-- **I can't set the shortcut I want** — macOS reserves it (Spotlight, screenshots, Mission Control…).
-  The app proposes a free *Control + Number* combination instead.
+- **I can't set the shortcut I want** — macOS reserves it (Spotlight, screenshots, Mission Control…) or
+  another app already holds it system-wide (another autoclicker such as TapBot, for instance). The app
+  tells you which, proposes a free *Control + Number* combination, and a **Retry** button re-registers
+  the shortcuts once the other app releases them.
 
 ## Layout
 
