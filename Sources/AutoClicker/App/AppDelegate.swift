@@ -39,8 +39,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if !state.settings.iconVisibility.showsMenuBar {
             showMainWindow()
-        } else if ProcessInfo.processInfo.environment["AUTOCLICKER_OPEN_WINDOW"] != nil {
-            showMainWindow()
+        } else {
+            // macOS can park a new status item off-screen when the menu bar is full; in that case
+            // the icon is invisible, so open the window instead of appearing to do nothing.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self, !self.statusItemIsOnScreen else { return }
+                self.showMainWindow()
+            }
         }
     }
 
