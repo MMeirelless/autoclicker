@@ -4,6 +4,7 @@ import AppKit
 struct SettingsView: View {
     @EnvironmentObject var state: AppState
     @State private var inputMonitoring = Permissions.inputMonitoringGranted
+    @State private var resetError: String?
 
     private var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
@@ -43,10 +44,20 @@ struct SettingsView: View {
                     StatusDot(color: state.permissionsOK ? .green : .red,
                               text: "Accessibility — " + (state.permissionsOK ? "granted" : "not granted"))
                     Spacer()
+                    if !state.permissionsOK {
+                        Button("Reset & re-request…") {
+                            resetError = Permissions.resetAndRequestAccessibility()
+                            if resetError == nil { Permissions.openAccessibilitySettings() }
+                        }
+                        .help("Use this when AutoClicker is already enabled in the list but still reports the permission as missing (typical after a rebuild).")
+                    }
                     Button("Open Settings…") {
                         Permissions.requestAccessibility()
                         Permissions.openAccessibilitySettings()
                     }
+                }
+                if let resetError {
+                    Text("Reset failed: \(resetError)").font(.caption).foregroundStyle(.red)
                 }
                 HStack {
                     StatusDot(color: inputMonitoring ? .green : .orange,
@@ -60,7 +71,7 @@ struct SettingsView: View {
             } header: {
                 Text("Permissions")
             } footer: {
-                Text("If the clicker is listed in Accessibility but still doesn't work, remove it from the list and add it again. Each rebuild of an ad-hoc signed app may require re-granting.")
+                Text("The list is called \(Permissions.accessibilityListName). macOS ties the grant to the app's code signature, so an ad-hoc signed build must be re-allowed after every rebuild: use “Reset & re-request”, or remove the app from the list and add it again. Build with `make cert` once to get a stable signature.")
             }
 
             Section("Data") {

@@ -61,19 +61,35 @@ struct MainView: View {
 /// Shown at the bottom of the UI until Accessibility is granted.
 struct PermissionBanner: View {
     @EnvironmentObject var state: AppState
+    @State private var resetError: String?
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Accessibility permission required").font(.callout.bold())
-                Text("System Settings → Privacy & Security → Accessibility → add AutoClicker. If it is already listed but not working, remove it and add it again.")
-                    .font(.caption).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Accessibility permission required").font(.callout.bold())
+                    Text("System Settings → Privacy & Security → \(Permissions.accessibilityListName) → enable AutoClicker.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("Grant…") {
+                    Permissions.requestAccessibility()
+                    Permissions.openAccessibilitySettings()
+                }
             }
-            Spacer()
-            Button("Grant…") {
-                Permissions.requestAccessibility()
-                Permissions.openAccessibilitySettings()
+            HStack(spacing: 10) {
+                Text("Already enabled but still not working? That happens after every rebuild: the grant is tied to the old build. Reset it, then allow the app again.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button("Reset & re-request…") {
+                    resetError = Permissions.resetAndRequestAccessibility()
+                    if resetError == nil { Permissions.openAccessibilitySettings() }
+                }
+            }
+            if let resetError {
+                Text("Reset failed: \(resetError). Remove AutoClicker from the list with the “−” button and add it again instead.")
+                    .font(.caption).foregroundStyle(.red)
             }
         }
         .padding(12)
